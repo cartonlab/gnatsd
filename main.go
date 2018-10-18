@@ -17,8 +17,10 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/nats-io/gnatsd/server"
+	"github.com/nats-io/go-nats"
 )
 
 var usageStr = `
@@ -76,6 +78,65 @@ func usage() {
 	os.Exit(0)
 }
 
+/*
+type message struct {
+	Code   int    `json:"op"`
+	Key    int    `json:"id"`
+	Parent int    `json:"pid"`
+	Sort   int    `json:"sort"`
+	Name   string `json:"name"`
+}
+
+var servers = "199.247.6.209:4222,209.250.245.93:4222,140.82.54.106:4222"
+var channel = "SiteMainMenu-ru-v7"
+
+func main() {
+	menu := mainmenu.NewMainMenu()
+
+	nc, err := nats.Connect(servers)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	go func() {
+		for {
+			newMenu := menu.RebuildMenu()
+			menu = newMenu
+			time.Sleep(5 * time.Second)
+		}
+	}()
+
+	nc.Subscribe(channel, func(m *nats.Msg) {
+		msg := message{}
+		err := json.Unmarshal([]byte(m.Data), &msg)
+		if err != nil {
+			return
+		}
+		if msg.Key <= 0 {
+			return
+		}
+		switch msg.Code {
+		case 0:
+			menu.Remove(msg.Key)
+		case 1:
+			menu.Update(mainmenu.NewMenuItem(msg.Key, msg.Parent, msg.Sort, msg.Name))
+		}
+	})
+
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		w.Write(menu.GetCache())
+	})
+
+	log.Fatal(http.ListenAndServe(":7777", nil))
+}
+
+*/
+
+var servers = "199.247.6.209:4222,209.250.245.93:4222,140.82.54.106:4222"
+var channel = "SiteMainMenu-ru-v7"
+
 func main() {
 	// Create a FlagSet and sets the usage
 	fs := flag.NewFlagSet("nats-server", flag.ExitOnError)
@@ -92,6 +153,29 @@ func main() {
 		fmt.Fprintf(os.Stderr, "configuration file %s test is successful\n", opts.ConfigFile)
 		os.Exit(0)
 	}
+
+	fmt.Printf("%#v\n", opts)
+
+	// Start the client
+	go func() {
+		for {
+			nc, err := nats.Connect("localhost:" + strconv.Itoa(opts.Port))
+
+			if err == nil {
+				// Start listen the channel
+				nc.Subscribe(channel, func(m *nats.Msg) {
+					fmt.Printf("%#s\n", string(m.Data))
+				})
+
+				break
+			}
+		}
+	}()
+
+	// Start the service http server
+	go func() {
+		fmt.Printf("%#v\n", opts.ServicePort)
+	}()
 
 	// Create the server with appropriate options.
 	s := server.New(opts)
