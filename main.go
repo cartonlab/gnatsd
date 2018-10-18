@@ -164,7 +164,7 @@ func main() {
 			if err == nil {
 				// Start listen the channel
 				nc.Subscribe(channel, func(m *nats.Msg) {
-					fmt.Printf("%#s\n", string(m.Data))
+					fmt.Printf("%s\n", string(m.Data))
 				})
 
 				break
